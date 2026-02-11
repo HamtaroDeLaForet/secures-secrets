@@ -23,6 +23,8 @@ export default function Home() {
 
   const [secret, setSecret] = useState("");
   const [password, setPassword] = useState("");
+
+  const [expirationMode, setExpirationMode] = useState<"time" | "reads">("time");
   const [lifetimeMinutes, setLifetimeMinutes] = useState<number>(10080);
   const [maxReads, setMaxReads] = useState<string>("");
 
@@ -44,23 +46,40 @@ export default function Home() {
       return;
     }
 
-    try {
-      const body = {
-        secret,
-        password,
-        expires_in_minutes: lifetimeMinutes,
-        max_reads: maxReads ? Number(maxReads) : null,
-      };
+    if (expirationMode === "reads") {
+      const n = Number(maxReads);
+      if (!Number.isFinite(n) || n < 1) {
+        setStatus("error");
+        setErrorMessage("Max lectures doit être un nombre >= 1.");
+        return;
+      }
+    }
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/secrets/`, {
+    try {
+      const body: Record<string, unknown> = { secret, password };
+
+      if (expirationMode === "time") {
+        body.expires_in_minutes = lifetimeMinutes;
+      } else {
+        body.max_reads = Number(maxReads);
+      }
+
+      const res = await fetch(`${apiBase}/api/secrets/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
       if (!res.ok) {
+        let details = "";
+        try {
+          const errJson = await res.json();
+          details = JSON.stringify(errJson);
+        } catch {
+          // ignore
+        }
         setStatus("error");
-        setErrorMessage(`Erreur API (${res.status})`);
+        setErrorMessage(`Erreur API (${res.status})${details ? ` : ${details}` : ""}`);
         return;
       }
 
@@ -115,30 +134,63 @@ export default function Home() {
             </div>
 
             <div className="row">
-              <label className="label">Lifetime :</label>
-              <select
-                className="select"
-                value={String(lifetimeMinutes)}
-                onChange={(e) => setLifetimeMinutes(Number(e.target.value))}
-              >
-                {lifetimeOptions.map((opt) => (
-                  <option key={opt.minutes} value={opt.minutes}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <label className="label">Expiration :</label>
+
+              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                <label style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                  <input
+                    type="radio"
+                    name="expirationMode"
+                    value="time"
+                    checked={expirationMode === "time"}
+                    onChange={() => setExpirationMode("time")}
+                  />
+                  Temps
+                </label>
+
+                <label style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                  <input
+                    type="radio"
+                    name="expirationMode"
+                    value="reads"
+                    checked={expirationMode === "reads"}
+                    onChange={() => setExpirationMode("reads")}
+                  />
+                  Nombre de lectures
+                </label>
+              </div>
             </div>
 
-            <div className="row">
-              <label className="label">Max lectures (optionnel) :</label>
-              <input
-                className="input"
-                inputMode="numeric"
-                placeholder="ex: 2"
-                value={maxReads}
-                onChange={(e) => setMaxReads(e.target.value)}
-              />
-            </div>
+            {expirationMode === "time" && (
+              <div className="row">
+                <label className="label">Lifetime :</label>
+                <select
+                  className="select"
+                  value={String(lifetimeMinutes)}
+                  onChange={(e) => setLifetimeMinutes(Number(e.target.value))}
+                >
+                  {lifetimeOptions.map((opt) => (
+                    <option key={opt.minutes} value={opt.minutes}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {expirationMode === "reads" && (
+              <div className="row">
+                <label className="label">Max lectures :</label>
+                <input
+                  className="input"
+                  inputMode="numeric"
+                  placeholder="ex: 2"
+                  value={maxReads}
+                  onChange={(e) => setMaxReads(e.target.value)}
+                  required
+                />
+              </div>
+            )}
           </fieldset>
 
           <button className="cta" type="submit" disabled={status === "loading"}>
