@@ -21,7 +21,6 @@ export default function RevealPage() {
 
   function extractFilename(contentDisposition: string | null): string {
     if (!contentDisposition) return "";
-    // try: filename="xxx"
     const m = contentDisposition.match(/filename="([^"]+)"/i);
     return m?.[1] ?? "";
   }
@@ -72,7 +71,6 @@ export default function RevealPage() {
       const cd = res.headers.get("content-disposition");
       const filename = extractFilename(cd);
 
-      // ✅ Cas texte (JSON)
       if (contentType.includes("application/json")) {
         const data = (await res.json()) as RevealResponse;
         setSecret(data.secret);
@@ -80,7 +78,6 @@ export default function RevealPage() {
         return;
       }
 
-      // ✅ Cas fichier (download)
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
 
