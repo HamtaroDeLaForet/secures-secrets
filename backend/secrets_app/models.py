@@ -11,6 +11,9 @@ class Secret(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
     remaining_reads = models.IntegerField(null=True, blank=True)
     read_count = models.IntegerField(default=0)
+    is_file = models.BooleanField(default=False)
+    filename = models.CharField(max_length=255, null=True, blank=True)
+    content_type = models.CharField(max_length=100,null=True,blank=True)
 
     def is_expired(self):
         if self.expires_at and timezone.now() >= self.expires_at:

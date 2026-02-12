@@ -243,6 +243,66 @@ body { font-family: Georgia, "Times New Roman", serif; }
 }
 
 
+.admin-login-page .hero {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.admin-login-page .hero h1 {
+  margin-bottom: 6px;
+}
+
+.admin-login-page .admin-login-form {
+  display: grid;
+  gap: 12px;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.admin-login-page .label {
+  font-weight: 700;
+  color: #666;
+}
+
+.admin-login-page .input {
+  width: 100%;
+}
+
+.admin-login-page .btn {
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+}
+
+.admin-login-page .btn {
+  background: #d54b1f;
+  color: #fff;
+}
+
+.admin-login-page .btn {
+  display: flex;
+  align-items: center;      /* centre verticalement */
+  justify-content: center;  /* centre horizontalement */
+  padding: 16px 18px;
+  font-weight: 800;
+  font-size: 18px;
+  border-radius: 10px;
+}
+
+.admin-login-page .btn:hover {
+  filter: brightness(0.98);
+}
+
+.admin-login-page .btn:active {
+  transform: translateY(1px);
+}
+
+
+
 @media (max-width: 820px) {
   .hero h1 { font-size: 32px; }
   .hero p { font-size: 18px; }

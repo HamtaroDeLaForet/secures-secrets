@@ -22,6 +22,7 @@ export default function Home() {
   );
 
   const [secret, setSecret] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState("");
 
   const [expirationMode, setExpirationMode] = useState<"time" | "reads">("time");
@@ -29,9 +30,7 @@ export default function Home() {
   const [maxReads, setMaxReads] = useState<string>("");
 
   const [shareUrl, setShareUrl] = useState<string>("");
-  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">(
-    "idle"
-  );
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   async function createSecret(e: React.FormEvent) {
@@ -46,6 +45,12 @@ export default function Home() {
       return;
     }
 
+    if (!file && !secret.trim()) {
+      setStatus("error");
+      setErrorMessage("Veuillez coller un secret ou choisir un fichier.");
+      return;
+    }
+
     if (expirationMode === "reads") {
       const n = Number(maxReads);
       if (!Number.isFinite(n) || n < 1) {
@@ -56,19 +61,38 @@ export default function Home() {
     }
 
     try {
-      const body: Record<string, unknown> = { secret, password };
+      let res: Response;
 
-      if (expirationMode === "time") {
-        body.expires_in_minutes = lifetimeMinutes;
+      if (file) {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("password", password);
+
+        if (expirationMode === "time") {
+          fd.append("expires_in_minutes", String(lifetimeMinutes));
+        } else {
+          fd.append("max_reads", String(Number(maxReads)));
+        }
+
+        res = await fetch(`${apiBase}/secrets/`, {
+          method: "POST",
+          body: fd,
+        });
       } else {
-        body.max_reads = Number(maxReads);
-      }
+        const body: Record<string, unknown> = { secret, password };
 
-      const res = await fetch(`${apiBase}/api/secrets/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+        if (expirationMode === "time") {
+          body.expires_in_minutes = lifetimeMinutes;
+        } else {
+          body.max_reads = Number(maxReads);
+        }
+
+        res = await fetch(`${apiBase}/secrets/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      }
 
       if (!res.ok) {
         let details = "";
@@ -103,19 +127,45 @@ export default function Home() {
       <div className="container">
         <header className="hero">
           <h1>Collez votre mot de passe, message secret ou lien privé ci-dessous</h1>
-          <p>
-            Ne stockez aucune information confidentielle dans vos emails ou fils
-            de discussion.
-          </p>
+          <p>Ne stockez aucune information confidentielle dans vos emails ou fils de discussion.</p>
         </header>
 
         <form onSubmit={createSecret} className="form">
+          {/* Upload fichier (optionnel) */}
+          <div className="row">
+            <label className="label">Fichier (optionnel) :</label>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <input
+                className="input"
+                type="file"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+              {file && (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setFile(null)}
+                  title="Retirer le fichier"
+                >
+                  Retirer
+                </button>
+              )}
+            </div>
+            {file && (
+              <div className="hint" style={{ marginTop: "6px" }}>
+                📎 {file.name} ({Math.ceil(file.size / 1024)} Ko)
+              </div>
+            )}
+          </div>
+
+          {/* Texte (désactivé si fichier) */}
           <textarea
             className="textarea"
-            placeholder="Votre contenu secret est à coller ici"
+            placeholder="Votre contenu secret est à coller ici (ou choisissez un fichier au-dessus)"
             value={secret}
             onChange={(e) => setSecret(e.target.value)}
-            required
+            required={!file}
+            disabled={!!file}
           />
 
           <fieldset className="fieldset">
@@ -197,9 +247,7 @@ export default function Home() {
             {status === "loading" ? "Création..." : "Créer un lien secret*"}
           </button>
 
-          {status === "error" && (
-            <div className="alert alert-error">❌ {errorMessage}</div>
-          )}
+          {status === "error" && <div className="alert alert-error">❌ {errorMessage}</div>}
 
           {shareUrl && (
             <div className="result">
@@ -215,8 +263,7 @@ export default function Home() {
               </button>
 
               <div className="hint">
-                ⚠️ Le mot de passe n’est jamais stocké. Partage le mot de passe
-                via un canal différent du lien.
+                ⚠️ Le mot de passe n’est jamais stocké. Partage le mot de passe via un canal différent du lien.
               </div>
             </div>
           )}

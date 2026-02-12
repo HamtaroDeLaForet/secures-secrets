@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type AdminSecretRow = {
   id: string;
@@ -8,6 +9,15 @@ type AdminSecretRow = {
   expiresAt: string | null;
   remainingReads: number | null;
   readCount: number;
+  status: "active" | "expired";
+};
+
+type AdminSecretRowApi = {
+  id: string;
+  created_at: string;
+  expires_at: string | null;
+  remaining_reads: number | null;
+  read_count: number;
   status: "active" | "expired";
 };
 
@@ -23,11 +33,20 @@ function buildSecretLink(origin: string, id: string) {
 export default function AdminPage() {
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
   const ADMIN_TOKEN = process.env.NEXT_PUBLIC_ADMIN_TOKEN ?? "";
+  const router = useRouter();
 
   const [data, setData] = useState<AdminSecretRow[] | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "forbidden" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  
+
+  async function logout() {
+    await fetch("/api/admin/logout", { method: "POST" });
+    router.push("/admin/login");
+  }
+
 
   useEffect(() => {
     let cancelled = false;
@@ -37,12 +56,8 @@ export default function AdminPage() {
       setErrorMsg("");
 
       try {
-        const res = await fetch(`${API_BASE}/api/admin/secrets`, {
+        const res = await fetch(`/api/admin/secrets`, {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...(ADMIN_TOKEN ? { Authorization: `Bearer ${ADMIN_TOKEN}` } : {}),
-          },
         });
 
         if (!res.ok) {
@@ -58,9 +73,19 @@ export default function AdminPage() {
           throw new Error(`HTTP ${res.status}${text ? ` - ${text}` : ""}`);
         }
 
-        const json = (await res.json()) as AdminSecretRow[];
+        const json = (await res.json()) as AdminSecretRowApi[];
+
+        const nomralized : AdminSecretRow[] = json.map((s) => ({
+          id : s.id,
+          createdAt: s.created_at,
+          expiresAt: s.expires_at,
+          remainingReads: s.remaining_reads,
+          readCount: s.read_count,
+          status: s.status,
+        }))
+
         if (!cancelled) {
-          setData(Array.isArray(json) ? json : []);
+          setData(nomralized);
           setStatus("idle");
         }
       } catch (err) {
@@ -98,6 +123,9 @@ export default function AdminPage() {
         <header className="hero">
           <h1>Administration</h1>
           <p>Liste des secrets créés. Le contenu n’est jamais affiché ici.</p>
+          <button type="button" className="btnSmall" onClick={logout} style={{ marginTop: "1rem" }}>
+            Se déconnecter
+          </button>
         </header>
 
         <fieldset className="fieldset">
@@ -191,9 +219,11 @@ export default function AdminPage() {
             </div>
           )}
 
-          <div className="hint">
-            Endpoint attendu : <span className="mono">{API_BASE}/api/admin/secrets</span>
-          </div>
+          {status === "error" &&  (
+            <div className="hint">
+              Endpoint attendu : <span className="mono">{API_BASE}/api/admin/secrets</span>
+            </div>
+          )}
         </fieldset>
       </div>
     </main>

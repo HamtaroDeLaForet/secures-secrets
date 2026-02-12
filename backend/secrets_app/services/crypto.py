@@ -1,5 +1,6 @@
 from cryptography.exceptions import InvalidTag
 import os, base64, hashlib
+import base64
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 ITERATIONS = 310000
@@ -42,3 +43,46 @@ def decrypt_secret(ciphertext_b64,salt_b64,nonce_b64,password):
     except InvalidTag : 
         raise ValueError("Mauvais mot de passe")
     return plaintext_bytes.decode("utf-8")
+
+def encrypt_bytes(plaintext : bytes, password : str):
+    salt = os.urandom(32)
+    nonce = os.urandom(12)
+    
+    key = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt,
+        ITERATIONS,
+        dklen=32
+    )
+    
+    aesgcm = AESGCM(key)
+    
+    ciphertext = aesgcm.encrypt(nonce,plaintext,None)
+    
+    return {
+        "ciphertext": base64.b64encode(ciphertext).decode("utf-8"),
+        "salt": base64.b64encode(salt).decode("utf-8"),
+        "nonce": base64.b64encode(nonce).decode("utf-8"),
+    }
+    
+def decrypt_bytes(ciphertext_b64: str, salt_b64: str, nonce_b64: str, password: str) -> bytes:
+    ciphertext = base64.b64decode(ciphertext_b64)
+    salt = base64.b64decode(salt_b64)
+    nonce = base64.b64decode(nonce_b64)
+
+    key = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt,
+        ITERATIONS,
+        dklen=32
+    )
+
+    aesgcm = AESGCM(key)
+    try:
+        plaintext_bytes = aesgcm.decrypt(nonce, ciphertext, None)
+    except InvalidTag:
+        raise ValueError("Mauvais mot de passe")
+
+    return plaintext_bytes
