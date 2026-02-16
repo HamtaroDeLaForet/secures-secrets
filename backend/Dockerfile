@@ -16,4 +16,4 @@ RUN pip install --no-cache-dir gunicorn
 COPY . .
 
 
-CMD sh -c "python manage.py migrate && gunicorn --bind 0.0.0.0:$PORT secrets_app.wsgi:application"
+CMD sh -c "python manage.py migrate && gunicorn --bind 0.0.0.0:$PORT config.wsgi:application"
