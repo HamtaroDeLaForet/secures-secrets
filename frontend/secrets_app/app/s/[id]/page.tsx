@@ -88,7 +88,6 @@ export default function RevealPage() {
       a.click();
       a.remove();
 
-      // cleanup
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
 
       setDownloadName(filename || "secret");

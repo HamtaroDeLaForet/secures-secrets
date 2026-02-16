@@ -100,7 +100,6 @@ export default function Home() {
           const errJson = await res.json();
           details = JSON.stringify(errJson);
         } catch {
-          // ignore
         }
         setStatus("error");
         setErrorMessage(`Erreur API (${res.status})${details ? ` : ${details}` : ""}`);
@@ -131,7 +130,6 @@ export default function Home() {
         </header>
 
         <form onSubmit={createSecret} className="form">
-          {/* Upload fichier (optionnel) */}
           <div className="row">
             <label className="label">Fichier (optionnel) :</label>
             <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
@@ -158,7 +156,6 @@ export default function Home() {
             )}
           </div>
 
-          {/* Texte (désactivé si fichier) */}
           <textarea
             className="textarea"
             placeholder="Votre contenu secret est à coller ici (ou choisissez un fichier au-dessus)"
